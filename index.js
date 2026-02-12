@@ -1,61 +1,57 @@
-const path = require("path");
-const express = require("express");
-const cors = require("cors");
-const morgan = require("morgan");
-const { init: initDB, Counter } = require("./db");
+// app.js
 
-const logger = morgan("tiny");
-
+const express = require('express');
+const axios = require('axios');
 const app = express();
-app.use(express.urlencoded({ extended: false }));
+
 app.use(express.json());
-app.use(cors());
-app.use(logger);
 
-// 首页
-app.get("/", async (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+// 默认示例接口
+app.get('/api/count', (req, res) => {
+  res.json({ count: 1 });
 });
 
-// 更新计数
-app.post("/api/count", async (req, res) => {
-  const { action } = req.body;
-  if (action === "inc") {
-    await Counter.create();
-  } else if (action === "clear") {
-    await Counter.destroy({
-      truncate: true,
-    });
+// ✅ 新增：Coze 歌词生成代理接口
+app.post('/api/coze-lyric', async (req, res) => {
+  try {
+    const {
+      start_cards,
+      start_comment,
+      mood_cards,
+      mood_comment,
+      rhythm_cards,
+      rhythm_comment
+    } = req.body;
+
+    const cozeParams = {
+      workflow_id: '7605408313219825705',
+      bot_id: '7605111774135975977',
+      parameters: {
+        start_cards,
+        start_comment,
+        mood_cards,
+        mood_comment,
+        rhythm_cards,
+        rhythm_comment
+      }
+    };
+
+    const cozeResponse = await axios.post(
+      'https://api.coze.cn/v1/workflow/stream_run',
+      cozeParams,
+      {
+        headers: {
+          'Authorization': 'Bearer cztei_qorFbN6pnyqZq7qv93S6D1skylcZy9SelOQDeEmEmImMvGh0eH1FFwM5LaFcg8nYP',
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    res.json(cozeResponse.data);
+  } catch (error) {
+    console.error('调用 Coze 失败:', error.response?.data || error.message);
+    res.status(500).json({ error: '调用 Coze 失败', detail: error.message });
   }
-  res.send({
-    code: 0,
-    data: await Counter.count(),
-  });
 });
 
-// 获取计数
-app.get("/api/count", async (req, res) => {
-  const result = await Counter.count();
-  res.send({
-    code: 0,
-    data: result,
-  });
-});
-
-// 小程序调用，获取微信 Open ID
-app.get("/api/wx_openid", async (req, res) => {
-  if (req.headers["x-wx-source"]) {
-    res.send(req.headers["x-wx-openid"]);
-  }
-});
-
-const port = process.env.PORT || 80;
-
-async function bootstrap() {
-  await initDB();
-  app.listen(port, () => {
-    console.log("启动成功", port);
-  });
-}
-
-bootstrap();
+module.exports = app;
