@@ -1,11 +1,11 @@
-// index.js（这是云托管实际运行的入口文件，必须改这个！）
+// index.js（云托管实际运行的入口文件）
 
 const express = require('express');
 const axios = require('axios');
 
 const app = express();
 
-// 解析 JSON 请求体
+// 解析 POST 请求的 JSON 数据
 app.use(express.json());
 
 // ✅ 根路径 / ，访问域名时返回服务状态，不再显示 CloudBase 默认页
